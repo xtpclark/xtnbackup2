@@ -1,3 +1,10 @@
+Clone into where you want to run the backup from. 
+i.e. 
+
+git clone xtnbackup2.git /mnt/backup
+cd /mnt/backup/
+./xtnbackup.sh
+
 Sets up XTN Backup.
 
 xtnutils directory contains options for XTN customers
