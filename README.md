@@ -1,9 +1,10 @@
 Clone into where you want to run the backup from. 
 i.e. 
-
+<pre>
 git clone xtnbackup2.git /mnt/backup
 cd /mnt/backup/
 ./xtnbackup.sh
+</pre>
 
 Sets up XTN Backup.
 
