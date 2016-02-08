@@ -12,7 +12,11 @@ echo "Working dir is $DIR"
 WORKDATE=`/bin/date "+%m%d%y_%s"`
 PLAINDATE=`date`
 
+# Update the clock.
+sudo ntpdate -s ntp.ubuntu.com
+
 PROG=`basename $0`
+HOSTNAME=`hostname`
 
 usage() {
   echo "$PROG usage:"
@@ -93,7 +97,7 @@ CN=$CRMACCT
 BACKUPACCT=bak_${CN}
 WORKDATE=`date "+%m%d%Y"`
 LOGFILE="${LOGDIR}/${PGHOST}_BackupStatus_${CN}_${WORKDATE}.log"
-GLOBALFILE=${CN}_${PGHOST}_globals_${WORKDATE}.sql
+GLOBALFILE=${CN}_${PGHOST}_globals_${HOSTNAME}_${WORKDATE}.sql
 
  else
 echo "Creating Backup Config"
@@ -109,6 +113,8 @@ ISXTN=0
 break
 fi
 done
+
+hash foo 2>/dev/null || { echo >&2 "I require foo but it's not installed.  Aborting."; exit 1; }
 
 echo "Set your xTuple Account Number"
 echo "Default: xtnbackup. You can also contact xTuple, or accept default"
@@ -166,6 +172,17 @@ if [ -z $ARCHIVEDIR ]; then
 ARCHIVEDIR=${WORKING}/archive
 fi
 
+echo "These are the databases to exclude from backup"
+echo "You can change this list in the settings.ini file"
+echo "default: \"'postgres','template0','template1'\""
+echo "Just hit any-key"
+echo " "
+read dummy
+
+if [ -z $EXCLUDEFROMBACKUP ]; then
+EXCLUDEFROMBACKUP="\"'postgres','template0','template1'\""
+fi
+
  echo "Set how many days of backups to keep locally."
  echo "default: 3"
 read DAYSTOKEEP
@@ -212,9 +229,11 @@ PGBIN=${PGBIN}
 DUMPEXT=${DUMPEXT}
 ARCHIVEDIR=${ARCHIVEDIR}
 LOGDIR=${LOGDIR}
+EXCLUDEFROMBACKUP=${EXCLUDEFROMBACKUP}
 DAYSTOKEEP=${DAYSTOKEEP}
 MAILPRGM=${MAILPRGM}
 MTO=${MTO}
+
 EOF
 
 
@@ -292,9 +311,13 @@ fi
 
 removelog()
 {
+CONVERTDAYS=`expr ${DAYSTOKEEP} \* 1400`
+
 REMOVALLOG="${LOGDIR}/removal.log"
-REMOVELIST=`find ${ARCHIVEDIR}/*.backup -mtime +${DAYSTOKEEP} -exec ls {} \;`
-REMOVELISTSQL=`find ${ARCHIVEDIR}/*.sql -mtime +${DAYSTOKEEP} -exec ls {} \;`
+
+REMOVELIST=`find ${ARCHIVEDIR}/*.backup -type f -mmin +${CONVERTDAYS} -exec ls {} \;`
+REMOVELISTSQL=`find ${ARCHIVEDIR}/*.sql -type f -mmin +${CONVERTDAYS} -exec ls {} \;`
+
 
 cat << EOF >> $REMOVALLOG
 ========================================
@@ -336,17 +359,18 @@ PGDump Version: ${PGDUMPVER}
 ======================================
 EOF
 
-CUSTLIST=`echo "SELECT datname as "dbname" FROM pg_catalog.pg_database \
-           WHERE datname NOT IN('postgres','template0','template1') ORDER BY 1;" | \
-            $PGBIN/psql -A -t -h $PGHOST -U $PGUSER -p $PGPORT postgres`
+# This will backup all databases other than the ones listed i.e. postgres,template0,template1
 
+BACKUPLIST=`echo "SELECT datname as "dbname" FROM pg_catalog.pg_database \
+           WHERE datname NOT IN (${EXCLUDEFROMBACKUP}) ORDER BY 1;"` | \
+           $PGBIN/psql -A -t -h $PGHOST -U $PGUSER -p $PGPORT postgres`
 
-for DB in $CUSTLIST ; do
+for DB in $BACKUPLIST ; do
 
-BACKUPFILE=${CN}_${DB}_${WORKDATE}.backup
+BACKUPFILE=${CN}_${DB}_${HOSTNAME}_${WORKDATE}.backup
 
 STARTDBJOB=`date +%T`
-$PGBIN/pg_dump --host $PGHOST  --port $PGPORT --username $PGUSER $DB --format custom --blobs --file ${ARCHIVEDIR}/${BACKUPFILE}
+$PGBIN/pg_dump --host $PGHOST --port $PGPORT --username $PGUSER $DB --format custom --blobs --file ${ARCHIVEDIR}/${BACKUPFILE}
 STOPDBJOB=`date +%T`
 
 cat << EOF >> $LOGFILE
