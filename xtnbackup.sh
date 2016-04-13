@@ -114,7 +114,6 @@ break
 fi
 done
 
-hash foo 2>/dev/null || { echo >&2 "I require foo but it's not installed.  Aborting."; exit 1; }
 
 echo "Set your xTuple Account Number"
 echo "Default: xtnbackup. You can also contact xTuple, or accept default"
@@ -362,7 +361,7 @@ EOF
 # This will backup all databases other than the ones listed i.e. postgres,template0,template1
 
 BACKUPLIST=`echo "SELECT datname as "dbname" FROM pg_catalog.pg_database \
-           WHERE datname NOT IN (${EXCLUDEFROMBACKUP}) ORDER BY 1;"` | \
+           WHERE datname NOT IN (${EXCLUDEFROMBACKUP}) ORDER BY 1;" | \
            $PGBIN/psql -A -t -h $PGHOST -U $PGUSER -p $PGPORT postgres`
 
 for DB in $BACKUPLIST ; do
