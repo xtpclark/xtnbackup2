@@ -94,7 +94,7 @@ if [ -e $SETS ]
 source $SETS
 DUMPVER=`$PGBIN/pg_dump -V | head -1 | cut -d ' ' -f3`
 CN=$CRMACCT
-BACKUPACCT=bak_${CN}
+BACKUPACCT=xtnbakups/bak_${CN}
 WORKDATE=`date "+%m%d%Y"`
 LOGFILE="${LOGDIR}/${PGHOST}_BackupStatus_${CN}_${WORKDATE}.log"
 GLOBALFILE=${CN}_${PGHOST}_globals_${HOSTNAME}_${WORKDATE}.sql
