@@ -13,7 +13,11 @@ WORKDATE=`/bin/date "+%m%d%y_%s"`
 PLAINDATE=`date`
 
 # Update the clock.
-sudo ntpdate -s ntp.ubuntu.com
+if [[ "$OSTYPE" == "darwin"* ]]; then
+  sudo sntp -sS ntp.ubuntu.com
+else
+  sudo ntpdate -s ntp.ubuntu.com
+fi
 
 PROG=`basename $0`
 HOSTNAME=`hostname`
